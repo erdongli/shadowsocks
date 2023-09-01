@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/erdongli/shadowsocks-go/internal/duplex"
 	"github.com/erdongli/shadowsocks-go/internal/socks"
 )
 
@@ -16,8 +17,8 @@ type Local struct {
 	ln net.Listener
 }
 
-func New(p int) (*Local, error) {
-	ln, err := net.Listen(network, fmt.Sprintf(":%d", p))
+func New(p string) (*Local, error) {
+	ln, err := net.Listen(network, net.JoinHostPort("", p))
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on port %d: %w", p, err)
 	}
@@ -50,5 +51,12 @@ func handle(conn net.Conn) {
 		return
 	}
 
-	log.Printf("tunneling to %s:%d", addr, port)
+	fconn, err := net.Dial(network, net.JoinHostPort(addr, port))
+	if err != nil {
+		log.Printf("failed to create forward tunnel: %v", err)
+		return
+	}
+	defer fconn.Close()
+
+	duplex.Relay(fconn, conn)
 }

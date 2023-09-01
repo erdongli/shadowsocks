@@ -1,5 +1,5 @@
 package cfg
 
 const (
-	Port = 1080
+	Port = "1080"
 )

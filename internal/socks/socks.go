@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 )
 
 const (
@@ -53,19 +54,19 @@ const (
 // +----+-----+-------+------+----------+----------+
 // | 1  |  1  | X'00' |  1   | Variable |    2     |
 // +----+-----+-------+------+----------+----------+
-func Handshake(rw io.ReadWriter) (string, uint16, error) {
+func Handshake(rw io.ReadWriter) (string, string, error) {
 	buf := [maxBufLen]byte{}
 
 	if _, err := io.ReadFull(rw, buf[:2]); err != nil {
-		return "", 0, fmt.Errorf("failed to read version and number of methods: %w", err)
+		return "", "", fmt.Errorf("failed to read version and number of methods: %w", err)
 	}
 	if buf[0] != version {
-		return "", 0, fmt.Errorf("invalid version identifier 0x%x", buf[0])
+		return "", "", fmt.Errorf("invalid version identifier 0x%x", buf[0])
 	}
 	n := int(buf[1])
 
 	if _, err := io.ReadFull(rw, buf[:n]); err != nil {
-		return "", 0, fmt.Errorf("failed to read methods: %w", err)
+		return "", "", fmt.Errorf("failed to read methods: %w", err)
 	}
 	m := methodNoAcceptable
 	for _, v := range buf[:n] {
@@ -76,32 +77,32 @@ func Handshake(rw io.ReadWriter) (string, uint16, error) {
 	}
 
 	if _, err := rw.Write([]byte{version, m}); err != nil {
-		return "", 0, fmt.Errorf("failed to select method: %w", err)
+		return "", "", fmt.Errorf("failed to select method: %w", err)
 	}
 
 	if _, err := io.ReadFull(rw, buf[:3]); err != nil {
-		return "", 0, fmt.Errorf("failed to read version, command, and reserved: %w", err)
+		return "", "", fmt.Errorf("failed to read version, command, and reserved: %w", err)
 	}
 	cmd := buf[1]
 
 	addr, err := Address(rw)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to read destination address: %w", err)
+		return "", "", fmt.Errorf("failed to read destination address: %w", err)
 	}
 
 	port, err := Port(rw)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to read destination port: %w", err)
+		return "", "", fmt.Errorf("failed to read destination port: %w", err)
 	}
 
 	switch cmd {
 	case cmdConnect:
 		if _, err := rw.Write([]byte{version, repSucceeded, rsv, atypIPv4, 0, 0, 0, 0, 0, 0}); err != nil {
-			return "", 0, fmt.Errorf("failed to reply: %w", err)
+			return "", "", fmt.Errorf("failed to reply: %w", err)
 		}
 	default:
 		rw.Write([]byte{version, repCMDNotSupported, rsv})
-		return "", 0, fmt.Errorf("unsupported command 0x%x", cmd)
+		return "", "", fmt.Errorf("unsupported command 0x%x", cmd)
 	}
 
 	return addr, port, nil
@@ -153,12 +154,12 @@ func Address(r io.Reader) (string, error) {
 // +------+
 // |  2   |
 // +------+
-func Port(r io.Reader) (uint16, error) {
+func Port(r io.Reader) (string, error) {
 	var buf [portLen]byte
 
 	if _, err := io.ReadFull(r, buf[:]); err != nil {
-		return 0, err
+		return "", err
 	}
 
-	return binary.BigEndian.Uint16(buf[:]), nil
+	return strconv.Itoa(int(binary.BigEndian.Uint16(buf[:]))), nil
 }
