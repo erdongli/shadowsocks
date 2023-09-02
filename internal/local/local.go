@@ -17,10 +17,10 @@ type Local struct {
 	ln net.Listener
 }
 
-func New(p string) (*Local, error) {
-	ln, err := net.Listen(network, net.JoinHostPort("", p))
+func New(port string) (*Local, error) {
+	ln, err := net.Listen(network, net.JoinHostPort("", port))
 	if err != nil {
-		return nil, fmt.Errorf("failed to listen on port %d: %w", p, err)
+		return nil, fmt.Errorf("failed to listen on port %s: %w", port, err)
 	}
 
 	return &Local{
@@ -45,13 +45,13 @@ func (l *Local) Serve() error {
 func handle(conn net.Conn) {
 	defer conn.Close()
 
-	addr, port, err := socks.Handshake(conn)
+	addr, err := socks.Handshake(conn)
 	if err != nil {
 		log.Printf("failed to perform handshake: %v", err)
 		return
 	}
 
-	fconn, err := net.Dial(network, net.JoinHostPort(addr, port))
+	fconn, err := net.Dial(network, addr.String())
 	if err != nil {
 		log.Printf("failed to create forward tunnel: %v", err)
 		return

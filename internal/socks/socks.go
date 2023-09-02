@@ -11,25 +11,32 @@ import (
 const (
 	version = 0x5
 
-	atypIPv4 = 0x1
-	atypFQDN = 0x3
-	atypIPv6 = 0x4
-
+	maxNMethods        = 255
 	methodNoAuthN      = byte(0x0)
 	methodNoAcceptable = byte(0xff)
 
 	cmdConnect      = 0x1
-	cmdBind         = 0x2
 	cmdUDPAssociate = 0x3
+
+	rsv = 0x0
 
 	repSucceeded       = 0x0
 	repCMDNotSupported = 0x7
 
-	rsv = 0x0
+	atypIPv4 = 0x1
+	atypFQDN = 0x3
+	atypIPv6 = 0x4
 
-	maxBufLen = 255
-	portLen   = 2
+	portLen     = 2
+	ipv4AddrLen = 1 + net.IPv4len + portLen
+	ipv6AddrLen = 1 + net.IPv6len + portLen
+	maxAddrLen  = 1 + 1 + 255 + portLen
 )
+
+type Addr interface {
+	Bytes() []byte
+	String() string
+}
 
 // +----+----------+----------+
 // |VER | NMETHODS | METHODS  |
@@ -54,20 +61,22 @@ const (
 // +----+-----+-------+------+----------+----------+
 // | 1  |  1  | X'00' |  1   | Variable |    2     |
 // +----+-----+-------+------+----------+----------+
-func Handshake(rw io.ReadWriter) (string, string, error) {
-	buf := [maxBufLen]byte{}
+func Handshake(rw io.ReadWriter) (Addr, error) {
+	buf := [maxNMethods]byte{}
 
 	if _, err := io.ReadFull(rw, buf[:2]); err != nil {
-		return "", "", fmt.Errorf("failed to read version and number of methods: %w", err)
+		return nil, fmt.Errorf("failed to read version and number of methods: %w", err)
 	}
+
 	if buf[0] != version {
-		return "", "", fmt.Errorf("invalid version identifier 0x%x", buf[0])
+		return nil, fmt.Errorf("invalid version 0x%x", buf[0])
 	}
 	n := int(buf[1])
 
 	if _, err := io.ReadFull(rw, buf[:n]); err != nil {
-		return "", "", fmt.Errorf("failed to read methods: %w", err)
+		return nil, fmt.Errorf("failed to read methods: %w", err)
 	}
+
 	m := methodNoAcceptable
 	for _, v := range buf[:n] {
 		if v == methodNoAuthN {
@@ -77,89 +86,116 @@ func Handshake(rw io.ReadWriter) (string, string, error) {
 	}
 
 	if _, err := rw.Write([]byte{version, m}); err != nil {
-		return "", "", fmt.Errorf("failed to select method: %w", err)
+		return nil, fmt.Errorf("failed to select method: %w", err)
+	}
+
+	if m == methodNoAcceptable {
+		return nil, fmt.Errorf("no acceptable methods")
 	}
 
 	if _, err := io.ReadFull(rw, buf[:3]); err != nil {
-		return "", "", fmt.Errorf("failed to read version, command, and reserved: %w", err)
+		return nil, fmt.Errorf("failed to read version, command, and reserved: %w", err)
+	}
+
+	if buf[0] != version {
+		return nil, fmt.Errorf("invalid version 0x%x", buf[0])
 	}
 	cmd := buf[1]
 
 	addr, err := Address(rw)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to read destination address: %w", err)
-	}
-
-	port, err := Port(rw)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to read destination port: %w", err)
+		return nil, fmt.Errorf("failed to read destination address: %w", err)
 	}
 
 	switch cmd {
 	case cmdConnect:
 		if _, err := rw.Write([]byte{version, repSucceeded, rsv, atypIPv4, 0, 0, 0, 0, 0, 0}); err != nil {
-			return "", "", fmt.Errorf("failed to reply: %w", err)
+			return nil, fmt.Errorf("failed to reply: %w", err)
 		}
+	case cmdUDPAssociate:
+		fallthrough
 	default:
 		rw.Write([]byte{version, repCMDNotSupported, rsv})
-		return "", "", fmt.Errorf("unsupported command 0x%x", cmd)
+		return nil, fmt.Errorf("unsupported command 0x%x", cmd)
 	}
 
-	return addr, port, nil
+	return addr, nil
 }
 
-// +------+----------+
-// | ATYP |   ADDR   |
-// +------+----------+
-// |  1   | Variable |
-// +------+----------+
-func Address(r io.Reader) (string, error) {
-	buf := [maxBufLen]byte{}
+// +------+----------+------+
+// | ATYP |   ADDR   | PORT |
+// +------+----------+------+
+// |  1   | Variable |  2   |
+// +------+----------+------+
+func Address(r io.Reader) (Addr, error) {
+	buf := [maxAddrLen]byte{}
 
 	if _, err := io.ReadFull(r, buf[:1]); err != nil {
-		return "", fmt.Errorf("failed to read address type: %w", err)
+		return nil, fmt.Errorf("failed to read address type: %w", err)
 	}
 
 	switch buf[0] {
 	case atypIPv4:
-		if _, err := io.ReadFull(r, buf[:net.IPv4len]); err != nil {
-			return "", fmt.Errorf("failed to read IPv4 address: %w", err)
+		if _, err := io.ReadFull(r, buf[1:ipv4AddrLen]); err != nil {
+			return nil, fmt.Errorf("failed to read IPv4 address: %w", err)
 		}
 
-		return net.IP(buf[:net.IPv4len]).String(), nil
+		return ipv4Addr(buf[:ipv4AddrLen]), nil
 	case atypFQDN:
-		if _, err := io.ReadFull(r, buf[:1]); err != nil {
-			return "", fmt.Errorf("failed to read length of FQDN: %w", err)
+		if _, err := io.ReadFull(r, buf[1:1+1]); err != nil {
+			return nil, fmt.Errorf("failed to read length of FQDN: %w", err)
 		}
-		l := int(buf[0])
+		l := 2 + int(buf[1]) + portLen
 
-		if _, err := io.ReadFull(r, buf[:l]); err != nil {
-			return "", fmt.Errorf("failed to read FQDN: %w", err)
+		if _, err := io.ReadFull(r, buf[2:l]); err != nil {
+			return nil, fmt.Errorf("failed to read FQDN: %w", err)
 		}
 
-		return string(buf[:l]), nil
+		return fqdnAddr(buf[:l]), nil
 	case atypIPv6:
-		if _, err := io.ReadFull(r, buf[:net.IPv6len]); err != nil {
-			return "", fmt.Errorf("failed to read IPv6 address: %w", err)
+		if _, err := io.ReadFull(r, buf[1:ipv6AddrLen]); err != nil {
+			return nil, fmt.Errorf("failed to read IPv6 address: %w", err)
 		}
 
-		return net.IP(buf[:net.IPv6len]).String(), nil
+		return ipv6Addr(buf[:ipv6AddrLen]), nil
 	default:
-		return "", fmt.Errorf("unsupported address type: 0x%x", buf[0])
+		return nil, fmt.Errorf("unsupported address type: 0x%x", buf[0])
 	}
 }
 
-// +------+
-// | PORT |
-// +------+
-// |  2   |
-// +------+
-func Port(r io.Reader) (string, error) {
-	var buf [portLen]byte
+type ipv4Addr []byte
 
-	if _, err := io.ReadFull(r, buf[:]); err != nil {
-		return "", err
-	}
+func (a ipv4Addr) Bytes() []byte {
+	return a
+}
 
-	return strconv.Itoa(int(binary.BigEndian.Uint16(buf[:]))), nil
+func (a ipv4Addr) String() string {
+	h := net.IP(a[1 : 1+net.IPv4len]).String()
+	return net.JoinHostPort(h, port(a))
+}
+
+type fqdnAddr []byte
+
+func (a fqdnAddr) Bytes() []byte {
+	return a
+}
+
+func (a fqdnAddr) String() string {
+	h := string(a[2 : len(a)-portLen])
+	return net.JoinHostPort(h, port(a))
+}
+
+type ipv6Addr []byte
+
+func (a ipv6Addr) Bytes() []byte {
+	return a
+}
+
+func (a ipv6Addr) String() string {
+	h := net.IP(a[1 : 1+net.IPv6len]).String()
+	return net.JoinHostPort(h, port(a))
+}
+
+func port(b []byte) string {
+	return strconv.Itoa(int(binary.BigEndian.Uint16(b[len(b)-portLen:])))
 }
