@@ -14,17 +14,19 @@ const (
 )
 
 type Local struct {
-	ln net.Listener
+	ln    net.Listener
+	rAddr string
 }
 
-func New(port string) (*Local, error) {
+func New(port, rHost, rPort string) (*Local, error) {
 	ln, err := net.Listen(network, net.JoinHostPort("", port))
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on port %s: %w", port, err)
 	}
 
 	return &Local{
-		ln: ln,
+		ln:    ln,
+		rAddr: net.JoinHostPort(rHost, rPort),
 	}, nil
 }
 
@@ -38,11 +40,11 @@ func (l *Local) Serve() error {
 			continue
 		}
 
-		go handle(conn)
+		go l.handle(conn)
 	}
 }
 
-func handle(conn net.Conn) {
+func (l *Local) handle(conn net.Conn) {
 	defer conn.Close()
 
 	addr, err := socks.Handshake(conn)
@@ -51,12 +53,17 @@ func handle(conn net.Conn) {
 		return
 	}
 
-	fconn, err := net.Dial(network, addr.String())
+	fconn, err := net.Dial(network, l.rAddr)
 	if err != nil {
-		log.Printf("failed to create forward tunnel: %v", err)
+		log.Printf("failed to create forward connection: %v", err)
 		return
 	}
 	defer fconn.Close()
+
+	if _, err := fconn.Write(addr.Bytes()); err != nil {
+		log.Printf("failed to forward destination address: %v", err)
+		return
+	}
 
 	duplex.Relay(fconn, conn)
 }

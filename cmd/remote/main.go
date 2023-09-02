@@ -4,16 +4,16 @@ import (
 	"log"
 
 	"github.com/erdongli/shadowsocks-go/internal/cfg"
-	"github.com/erdongli/shadowsocks-go/internal/local"
+	"github.com/erdongli/shadowsocks-go/internal/remote"
 )
 
 func main() {
-	l, err := local.New(cfg.LocalPort, cfg.RemoteHost, cfg.RemotePort)
+	r, err := remote.New(cfg.RemotePort)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := l.Serve(); err != nil {
+	if err := r.Serve(); err != nil {
 		log.Fatal(err)
 	}
 }
