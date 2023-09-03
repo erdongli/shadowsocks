@@ -9,22 +9,25 @@ import (
 )
 
 const (
-	timeout = 60 * time.Second
+	timeout = 5 * time.Second
 )
 
-func Relay(ingress, egress net.Conn) {
-	log.Printf("relaying between %s and %s", ingress.LocalAddr(), egress.RemoteAddr())
-
+func Relay(egress, ingress net.Conn) {
 	wg := sync.WaitGroup{}
-	wg.Add(1)
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 
-		io.Copy(egress, ingress)
+		if _, err := io.Copy(egress, ingress); err != nil {
+			log.Println(err)
+		}
+
+		egress.SetReadDeadline(time.Now().Add(timeout))
 	}()
 
 	io.Copy(ingress, egress)
+	ingress.SetReadDeadline(time.Now().Add(timeout))
 
 	wg.Wait()
 }

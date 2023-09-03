@@ -65,7 +65,7 @@ func Handshake(rw io.ReadWriter) (Addr, error) {
 	buf := [maxNMethods]byte{}
 
 	if _, err := io.ReadFull(rw, buf[:2]); err != nil {
-		return nil, fmt.Errorf("failed to read version and number of methods: %w", err)
+		return nil, err
 	}
 
 	if buf[0] != version {
@@ -74,7 +74,7 @@ func Handshake(rw io.ReadWriter) (Addr, error) {
 	n := int(buf[1])
 
 	if _, err := io.ReadFull(rw, buf[:n]); err != nil {
-		return nil, fmt.Errorf("failed to read methods: %w", err)
+		return nil, err
 	}
 
 	m := methodNoAcceptable
@@ -86,7 +86,7 @@ func Handshake(rw io.ReadWriter) (Addr, error) {
 	}
 
 	if _, err := rw.Write([]byte{version, m}); err != nil {
-		return nil, fmt.Errorf("failed to select method: %w", err)
+		return nil, err
 	}
 
 	if m == methodNoAcceptable {
@@ -94,7 +94,7 @@ func Handshake(rw io.ReadWriter) (Addr, error) {
 	}
 
 	if _, err := io.ReadFull(rw, buf[:3]); err != nil {
-		return nil, fmt.Errorf("failed to read version, command, and reserved: %w", err)
+		return nil, err
 	}
 
 	if buf[0] != version {
@@ -104,13 +104,13 @@ func Handshake(rw io.ReadWriter) (Addr, error) {
 
 	addr, err := Address(rw)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read destination address: %w", err)
+		return nil, err
 	}
 
 	switch cmd {
 	case cmdConnect:
 		if _, err := rw.Write([]byte{version, repSucceeded, rsv, atypIPv4, 0, 0, 0, 0, 0, 0}); err != nil {
-			return nil, fmt.Errorf("failed to reply: %w", err)
+			return nil, err
 		}
 	case cmdUDPAssociate:
 		fallthrough
@@ -131,30 +131,30 @@ func Address(r io.Reader) (Addr, error) {
 	buf := [maxAddrLen]byte{}
 
 	if _, err := io.ReadFull(r, buf[:1]); err != nil {
-		return nil, fmt.Errorf("failed to read address type: %w", err)
+		return nil, err
 	}
 
 	switch buf[0] {
 	case atypIPv4:
 		if _, err := io.ReadFull(r, buf[1:ipv4AddrLen]); err != nil {
-			return nil, fmt.Errorf("failed to read IPv4 address: %w", err)
+			return nil, err
 		}
 
 		return ipv4Addr(buf[:ipv4AddrLen]), nil
 	case atypFQDN:
 		if _, err := io.ReadFull(r, buf[1:1+1]); err != nil {
-			return nil, fmt.Errorf("failed to read length of FQDN: %w", err)
+			return nil, err
 		}
 		l := 2 + int(buf[1]) + portLen
 
 		if _, err := io.ReadFull(r, buf[2:l]); err != nil {
-			return nil, fmt.Errorf("failed to read FQDN: %w", err)
+			return nil, err
 		}
 
 		return fqdnAddr(buf[:l]), nil
 	case atypIPv6:
 		if _, err := io.ReadFull(r, buf[1:ipv6AddrLen]); err != nil {
-			return nil, fmt.Errorf("failed to read IPv6 address: %w", err)
+			return nil, err
 		}
 
 		return ipv6Addr(buf[:ipv6AddrLen]), nil

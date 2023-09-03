@@ -1,11 +1,12 @@
 package remote
 
 import (
-	"fmt"
 	"log"
 	"net"
 
+	"github.com/erdongli/shadowsocks-go/internal/cfg"
 	"github.com/erdongli/shadowsocks-go/internal/duplex"
+	"github.com/erdongli/shadowsocks-go/internal/shadow"
 	"github.com/erdongli/shadowsocks-go/internal/socks"
 )
 
@@ -20,7 +21,7 @@ type Remote struct {
 func New(port string) (*Remote, error) {
 	ln, err := net.Listen(network, net.JoinHostPort("", port))
 	if err != nil {
-		return nil, fmt.Errorf("failed to listen on port %s: %w", port, err)
+		return nil, err
 	}
 
 	return &Remote{
@@ -45,7 +46,9 @@ func (r *Remote) Serve() error {
 func handle(conn net.Conn) {
 	defer conn.Close()
 
-	addr, err := socks.Address(conn)
+	sconn := shadow.Shadow(conn, cfg.PSK, cfg.AEADConfig)
+
+	addr, err := socks.Address(sconn)
 	if err != nil {
 		log.Printf("failed to read address: %v", err)
 		return
@@ -58,5 +61,6 @@ func handle(conn net.Conn) {
 	}
 	defer fconn.Close()
 
-	duplex.Relay(fconn, conn)
+	log.Printf("start relaying between %s <-> %s", conn.RemoteAddr(), fconn.RemoteAddr())
+	duplex.Relay(fconn, sconn)
 }

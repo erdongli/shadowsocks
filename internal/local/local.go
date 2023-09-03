@@ -1,11 +1,12 @@
 package local
 
 import (
-	"fmt"
 	"log"
 	"net"
 
+	"github.com/erdongli/shadowsocks-go/internal/cfg"
 	"github.com/erdongli/shadowsocks-go/internal/duplex"
+	"github.com/erdongli/shadowsocks-go/internal/shadow"
 	"github.com/erdongli/shadowsocks-go/internal/socks"
 )
 
@@ -21,7 +22,7 @@ type Local struct {
 func New(port, rHost, rPort string) (*Local, error) {
 	ln, err := net.Listen(network, net.JoinHostPort("", port))
 	if err != nil {
-		return nil, fmt.Errorf("failed to listen on port %s: %w", port, err)
+		return nil, err
 	}
 
 	return &Local{
@@ -60,10 +61,12 @@ func (l *Local) handle(conn net.Conn) {
 	}
 	defer fconn.Close()
 
-	if _, err := fconn.Write(addr.Bytes()); err != nil {
+	sconn := shadow.Shadow(fconn, cfg.PSK, cfg.AEADConfig)
+	if _, err := sconn.Write(addr.Bytes()); err != nil {
 		log.Printf("failed to forward destination address: %v", err)
 		return
 	}
 
-	duplex.Relay(fconn, conn)
+	log.Printf("start relaying between %s <-> %s", conn.RemoteAddr(), fconn.RemoteAddr())
+	duplex.Relay(sconn, conn)
 }
