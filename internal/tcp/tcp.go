@@ -1,4 +1,4 @@
-package duplex
+package tcp
 
 import (
 	"io"
@@ -9,10 +9,11 @@ import (
 )
 
 const (
+	network = "tcp"
 	timeout = 5 * time.Second
 )
 
-func Relay(egress, ingress net.Conn) {
+func relay(egress, ingress net.Conn) {
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)

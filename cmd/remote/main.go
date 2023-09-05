@@ -2,21 +2,26 @@ package main
 
 import (
 	"log"
-	"os"
+	"sync"
 
 	"github.com/erdongli/shadowsocks-go/internal/cfg"
-	"github.com/erdongli/shadowsocks-go/internal/remote"
+	"github.com/erdongli/shadowsocks-go/internal/tcp"
 )
 
 func main() {
-	log.SetOutput(os.Stdout)
-
-	r, err := remote.New(cfg.RemotePort)
+	tcp, err := tcp.NewRemote(cfg.RemotePort, cfg.PSK, cfg.AEADConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := r.Serve(); err != nil {
-		log.Fatal(err)
-	}
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		tcp.Serve()
+	}()
+
+	wg.Wait()
 }

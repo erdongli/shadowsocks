@@ -1,25 +1,21 @@
-package local
+package tcp
 
 import (
 	"log"
 	"net"
 
-	"github.com/erdongli/shadowsocks-go/internal/cfg"
-	"github.com/erdongli/shadowsocks-go/internal/duplex"
 	"github.com/erdongli/shadowsocks-go/internal/shadow"
 	"github.com/erdongli/shadowsocks-go/internal/socks"
-)
-
-const (
-	network = "tcp"
 )
 
 type Local struct {
 	ln    net.Listener
 	rAddr string
+	psk   []byte
+	cfg   shadow.AEADConfig
 }
 
-func New(port, rHost, rPort string) (*Local, error) {
+func NewLocal(port, rHost, rPort string, psk []byte, cfg shadow.AEADConfig) (*Local, error) {
 	ln, err := net.Listen(network, net.JoinHostPort("", port))
 	if err != nil {
 		return nil, err
@@ -28,10 +24,12 @@ func New(port, rHost, rPort string) (*Local, error) {
 	return &Local{
 		ln:    ln,
 		rAddr: net.JoinHostPort(rHost, rPort),
+		psk:   psk,
+		cfg:   cfg,
 	}, nil
 }
 
-func (l *Local) Serve() error {
+func (l *Local) Serve() {
 	log.Printf("accepting connection on address %s", l.ln.Addr())
 
 	for {
@@ -61,12 +59,12 @@ func (l *Local) handle(conn net.Conn) {
 	}
 	defer fconn.Close()
 
-	sconn := shadow.Shadow(fconn, cfg.PSK, cfg.AEADConfig)
+	sconn := shadow.Shadow(fconn, l.psk, l.cfg)
 	if _, err := sconn.Write(addr.Bytes()); err != nil {
 		log.Printf("failed to forward destination address: %v", err)
 		return
 	}
 
 	log.Printf("start relaying between %s <-> %s", conn.RemoteAddr(), fconn.RemoteAddr())
-	duplex.Relay(sconn, conn)
+	relay(sconn, conn)
 }
