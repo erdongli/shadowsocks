@@ -65,6 +65,6 @@ func (l *Local) handle(conn net.Conn) {
 		return
 	}
 
-	log.Printf("start relaying between %s <-> %s", conn.RemoteAddr(), fconn.RemoteAddr())
+	log.Printf("connecting to %s for target %s", l.rAddr, addr)
 	relay(sconn, conn)
 }
