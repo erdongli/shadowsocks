@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/erdongli/shadowsocks-go/internal/math"
+	"github.com/erdongli/shadowsocks/internal/math"
 )
 
 type reader struct {

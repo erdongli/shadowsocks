@@ -5,8 +5,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/erdongli/shadowsocks-go/internal/shadow"
-	"github.com/erdongli/shadowsocks-go/internal/tcp"
+	"github.com/erdongli/shadowsocks/internal/shadow"
+	"github.com/erdongli/shadowsocks/internal/tcp"
 )
 
 var (

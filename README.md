@@ -1,1 +1,1 @@
-# shadowsocks-go
+# shadowsocks

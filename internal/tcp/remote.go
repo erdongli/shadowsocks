@@ -4,8 +4,8 @@ import (
 	"log"
 	"net"
 
-	"github.com/erdongli/shadowsocks-go/internal/shadow"
-	"github.com/erdongli/shadowsocks-go/internal/socks"
+	"github.com/erdongli/shadowsocks/internal/shadow"
+	"github.com/erdongli/shadowsocks/internal/socks"
 )
 
 type Remote struct {

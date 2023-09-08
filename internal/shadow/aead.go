@@ -6,7 +6,7 @@ import (
 	"crypto/sha256"
 	"io"
 
-	"github.com/erdongli/shadowsocks-go/internal/math"
+	"github.com/erdongli/shadowsocks/internal/math"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 )
