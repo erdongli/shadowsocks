@@ -15,7 +15,7 @@ type Local struct {
 	cfg   shadow.AEADConfig
 }
 
-func NewLocal(port, rHost, rPort string, psk []byte, cfg shadow.AEADConfig) (*Local, error) {
+func NewLocal(port, rAddr, key string, cfg shadow.AEADConfig) (*Local, error) {
 	ln, err := net.Listen(network, net.JoinHostPort("", port))
 	if err != nil {
 		return nil, err
@@ -23,8 +23,8 @@ func NewLocal(port, rHost, rPort string, psk []byte, cfg shadow.AEADConfig) (*Lo
 
 	return &Local{
 		ln:    ln,
-		rAddr: net.JoinHostPort(rHost, rPort),
-		psk:   psk,
+		rAddr: rAddr,
+		psk:   cfg.PSK(key),
 		cfg:   cfg,
 	}, nil
 }
@@ -65,6 +65,6 @@ func (l *Local) handle(conn net.Conn) {
 		return
 	}
 
-	log.Printf("connecting to %s for target %s", l.rAddr, addr)
+	log.Printf("connecting to %s for %s", l.rAddr, addr)
 	relay(sconn, conn)
 }

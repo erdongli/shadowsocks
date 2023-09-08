@@ -3,6 +3,7 @@ package shadow
 import (
 	"crypto/cipher"
 	"crypto/sha1"
+	"crypto/sha256"
 	"io"
 
 	"github.com/erdongli/shadowsocks-go/internal/math"
@@ -23,6 +24,10 @@ var (
 		SaltSize: 32,
 		TagSize:  chacha20poly1305.Overhead,
 		New:      chacha20poly1305.New,
+		PSK: func(k string) []byte {
+			psk := sha256.Sum256([]byte(k))
+			return psk[:]
+		},
 	}
 )
 
@@ -30,6 +35,7 @@ type AEADConfig struct {
 	KeySize, SaltSize, TagSize int
 
 	New func(key []byte) (cipher.AEAD, error)
+	PSK func(k string) []byte
 }
 
 func newAEAD(sr io.Reader, psk []byte, cfg AEADConfig) (cipher.AEAD, []byte, error) {

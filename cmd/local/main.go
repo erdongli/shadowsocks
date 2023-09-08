@@ -1,15 +1,27 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"sync"
 
-	"github.com/erdongli/shadowsocks-go/internal/cfg"
+	"github.com/erdongli/shadowsocks-go/internal/shadow"
 	"github.com/erdongli/shadowsocks-go/internal/tcp"
 )
 
+var (
+	p = flag.String("p", "", "port to listen on")
+	r = flag.String("r", "", "remote address to connect to")
+	k = flag.String("k", "", "access key")
+)
+
 func main() {
-	tcp, err := tcp.NewLocal(cfg.LocalPort, cfg.RemoteHost, cfg.RemotePort, cfg.PSK, cfg.AEADConfig)
+	flag.Parse()
+	if *p == "" || *r == "" || *k == "" {
+		log.Fatal("missing port/remote address/access key")
+	}
+
+	tcp, err := tcp.NewLocal(*p, *r, *k, shadow.ChaCha20Poly1305)
 	if err != nil {
 		log.Fatal(err)
 	}

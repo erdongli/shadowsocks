@@ -14,7 +14,7 @@ type Remote struct {
 	cfg shadow.AEADConfig
 }
 
-func NewRemote(port string, psk []byte, cfg shadow.AEADConfig) (*Remote, error) {
+func NewRemote(port, key string, cfg shadow.AEADConfig) (*Remote, error) {
 	ln, err := net.Listen(network, net.JoinHostPort("", port))
 	if err != nil {
 		return nil, err
@@ -22,7 +22,7 @@ func NewRemote(port string, psk []byte, cfg shadow.AEADConfig) (*Remote, error) 
 
 	return &Remote{
 		ln:  ln,
-		psk: psk,
+		psk: cfg.PSK(key),
 		cfg: cfg,
 	}, nil
 }
@@ -59,6 +59,6 @@ func (r *Remote) handle(conn net.Conn) {
 	}
 	defer fconn.Close()
 
-	log.Printf("connecting to target %s for %s", addr, conn.RemoteAddr())
+	log.Printf("connecting to %s for %s", addr, conn.RemoteAddr())
 	relay(fconn, sconn)
 }
