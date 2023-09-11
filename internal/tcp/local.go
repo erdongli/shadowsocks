@@ -10,12 +10,12 @@ import (
 
 type Local struct {
 	ln    net.Listener
-	rAddr string
+	raddr string
 	psk   []byte
 	cfg   shadow.AEADConfig
 }
 
-func NewLocal(port, rAddr, key string, cfg shadow.AEADConfig) (*Local, error) {
+func NewLocal(port, raddr, key string, cfg shadow.AEADConfig) (*Local, error) {
 	ln, err := net.Listen(network, net.JoinHostPort("", port))
 	if err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func NewLocal(port, rAddr, key string, cfg shadow.AEADConfig) (*Local, error) {
 
 	return &Local{
 		ln:    ln,
-		rAddr: rAddr,
+		raddr: raddr,
 		psk:   cfg.PSK(key),
 		cfg:   cfg,
 	}, nil
@@ -52,7 +52,7 @@ func (l *Local) handle(conn net.Conn) {
 		return
 	}
 
-	fconn, err := net.Dial(network, l.rAddr)
+	fconn, err := net.Dial(network, l.raddr)
 	if err != nil {
 		log.Printf("failed to create forward connection: %v", err)
 		return
@@ -65,6 +65,6 @@ func (l *Local) handle(conn net.Conn) {
 		return
 	}
 
-	log.Printf("connecting to %s for %s", l.rAddr, addr)
+	log.Printf("connecting to %s for %s", l.raddr, addr)
 	relay(sconn, conn)
 }
