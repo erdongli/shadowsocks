@@ -1,9 +1,9 @@
 package tcp
 
 import (
-	"log"
 	"net"
 
+	"github.com/erdongli/shadowsocks/internal/log"
 	"github.com/erdongli/shadowsocks/internal/shadow"
 	"github.com/erdongli/shadowsocks/internal/socks"
 )
@@ -28,12 +28,12 @@ func NewRemote(port, key string, cfg shadow.AEADConfig) (*Remote, error) {
 }
 
 func (r *Remote) Serve() {
-	log.Printf("accepting connection on address %s", r.ln.Addr())
+	log.Printf(log.Info, "accepting connection on address %s", r.ln.Addr())
 
 	for {
 		conn, err := r.ln.Accept()
 		if err != nil {
-			log.Printf("failed to accept connection: %v", err)
+			log.Printf(log.Warn, "failed to accept connection: %v", err)
 			continue
 		}
 
@@ -48,17 +48,17 @@ func (r *Remote) handle(conn net.Conn) {
 
 	addr, err := socks.Address(sconn)
 	if err != nil {
-		log.Printf("failed to read address: %v", err)
+		log.Printf(log.Warn, "failed to read address: %v", err)
 		return
 	}
 
 	fconn, err := net.Dial(network, addr.String())
 	if err != nil {
-		log.Printf("failed to create forward connection: %v", err)
+		log.Printf(log.Warn, "failed to create forward connection: %v", err)
 		return
 	}
 	defer fconn.Close()
 
-	log.Printf("connecting to %s for %s", addr, conn.RemoteAddr())
+	log.Printf(log.Debug, "connecting to %s for %s", addr, conn.RemoteAddr())
 	relay(fconn, sconn)
 }

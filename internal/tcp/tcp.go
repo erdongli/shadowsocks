@@ -2,7 +2,6 @@ package tcp
 
 import (
 	"io"
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -20,10 +19,7 @@ func relay(egress, ingress net.Conn) {
 	go func() {
 		defer wg.Done()
 
-		if _, err := io.Copy(egress, ingress); err != nil {
-			log.Println(err)
-		}
-
+		io.Copy(egress, ingress)
 		egress.SetReadDeadline(time.Now().Add(timeout))
 	}()
 
