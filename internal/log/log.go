@@ -3,30 +3,34 @@ package log
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 )
 
 type Level int
 
 const (
-	Debug Level = iota
-	Info
-	Warn
-	Error
+	LevelDebug Level = iota
+	LevelInfo
+	LevelWarn
+	LevelError
+	LevelFatal
 )
 
-var level = Info
+var level = LevelInfo
 
 func (l Level) String() string {
 	switch l {
-	case Debug:
+	case LevelDebug:
 		return "DEBUG"
-	case Info:
+	case LevelInfo:
 		return "INFO"
-	case Warn:
+	case LevelWarn:
 		return "WARN"
-	case Error:
+	case LevelError:
 		return "ERROR"
+	case LevelFatal:
+		return "FATAL"
 	default:
 		return "UNKNOWN"
 	}
@@ -35,19 +39,42 @@ func (l Level) String() string {
 func SetLevel(l string) {
 	switch strings.ToLower(l) {
 	case "debug":
-		level = Debug
+		level = LevelDebug
 	case "info":
-		level = Info
+		level = LevelInfo
 	case "warn":
-		level = Warn
+		level = LevelWarn
 	case "error":
-		level = Error
+		level = LevelError
+	case "fatal":
+		level = LevelFatal
 	default:
-		level = Info
+		level = LevelInfo
 	}
 }
 
-func Printf(l Level, format string, v ...any) {
+func Debug(format string, v ...any) {
+	levelLog(LevelDebug, format, v...)
+}
+
+func Info(format string, v ...any) {
+	levelLog(LevelInfo, format, v...)
+}
+
+func Warn(format string, v ...any) {
+	levelLog(LevelWarn, format, v...)
+}
+
+func Error(format string, v ...any) {
+	levelLog(LevelError, format, v...)
+}
+
+func Fatal(format string, v ...any) {
+	levelLog(LevelFatal, format, v...)
+	os.Exit(1)
+}
+
+func levelLog(l Level, format string, v ...any) {
 	if l < level {
 		return
 	}

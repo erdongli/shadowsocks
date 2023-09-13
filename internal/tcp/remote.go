@@ -28,12 +28,12 @@ func NewRemote(port, key string, cfg shadow.AEADConfig) (*Remote, error) {
 }
 
 func (r *Remote) Serve() {
-	log.Printf(log.Info, "accepting connection on address %s", r.ln.Addr())
+	log.Info("accepting connection on address %s", r.ln.Addr())
 
 	for {
 		conn, err := r.ln.Accept()
 		if err != nil {
-			log.Printf(log.Warn, "failed to accept connection: %v", err)
+			log.Warn("failed to accept connection: %v", err)
 			continue
 		}
 
@@ -48,17 +48,17 @@ func (r *Remote) handle(conn net.Conn) {
 
 	addr, err := socks.Address(sconn)
 	if err != nil {
-		log.Printf(log.Warn, "failed to read address: %v", err)
+		log.Error("failed to read address: %v", err)
 		return
 	}
 
 	fconn, err := net.Dial(network, addr.String())
 	if err != nil {
-		log.Printf(log.Warn, "failed to create forward connection: %v", err)
+		log.Warn("failed to create forward connection: %v", err)
 		return
 	}
 	defer fconn.Close()
 
-	log.Printf(log.Debug, "connecting to %s for %s", addr, conn.RemoteAddr())
+	log.Debug("connecting to %s for %s", addr, conn.RemoteAddr())
 	relay(fconn, sconn)
 }

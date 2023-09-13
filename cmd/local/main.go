@@ -22,14 +22,12 @@ func main() {
 	log.SetLevel(*l)
 
 	if *p == "" || *r == "" || *k == "" {
-		log.Printf(log.Error, "missing port/remote address/access key")
-		return
+		log.Fatal("missing port/remote address/access key")
 	}
 
 	tcp, err := tcp.NewLocal(*p, *r, *k, shadow.ChaCha20Poly1305)
 	if err != nil {
-		log.Printf(log.Error, "failed to create TCP local: %v", err)
-		return
+		log.Fatal("failed to create TCP local: %v", err)
 	}
 
 	wg := sync.WaitGroup{}
