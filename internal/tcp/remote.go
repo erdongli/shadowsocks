@@ -46,7 +46,7 @@ func (r *Remote) handle(conn net.Conn) {
 
 	sconn := shadow.Shadow(conn, r.psk, r.cfg)
 
-	addr, err := socks.Address(sconn)
+	addr, err := socks.ReadSocksAddr(sconn)
 	if err != nil {
 		log.Error("failed to read address: %v", err)
 		return

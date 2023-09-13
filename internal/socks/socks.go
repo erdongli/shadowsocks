@@ -102,7 +102,7 @@ func Handshake(rw io.ReadWriter) (Addr, error) {
 	}
 	cmd := buf[1]
 
-	addr, err := Address(rw)
+	addr, err := ReadSocksAddr(rw)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func Handshake(rw io.ReadWriter) (Addr, error) {
 // +------+----------+------+
 // |  1   | Variable |  2   |
 // +------+----------+------+
-func Address(r io.Reader) (Addr, error) {
+func ReadSocksAddr(r io.Reader) (Addr, error) {
 	buf := [maxAddrSize]byte{}
 
 	if _, err := io.ReadFull(r, buf[:1]); err != nil {
