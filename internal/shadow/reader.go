@@ -34,7 +34,7 @@ func newReader(r io.Reader, psk []byte, cfg AEADConfig) (io.Reader, error) {
 
 func (r *reader) Read(b []byte) (int, error) {
 	if r.offset == len(r.buf) {
-		buf := make([]byte, maxPayloadLen+r.aead.Overhead())
+		buf := make([]byte, maxPayloadSize+r.aead.Overhead())
 
 		if _, err := io.ReadFull(r.r, buf[:2+r.aead.Overhead()]); err != nil {
 			return 0, err
@@ -46,8 +46,8 @@ func (r *reader) Read(b []byte) (int, error) {
 		math.IncrLittleEndian(r.nonce)
 
 		l := int(binary.BigEndian.Uint16(buf))
-		if l > maxPayloadLen {
-			return 0, fmt.Errorf("invalid payload length %d", l)
+		if l > maxPayloadSize {
+			return 0, fmt.Errorf("invalid payload size %d", l)
 		}
 
 		if _, err := io.ReadFull(r.r, buf[:l+r.aead.Overhead()]); err != nil {

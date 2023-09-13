@@ -27,10 +27,10 @@ const (
 	atypFQDN = 0x3
 	atypIPv6 = 0x4
 
-	portLen     = 2
-	ipv4AddrLen = 1 + net.IPv4len + portLen
-	ipv6AddrLen = 1 + net.IPv6len + portLen
-	maxAddrLen  = 1 + 1 + 255 + portLen
+	portSize     = 2
+	ipv4AddrSize = 1 + net.IPv4len + portSize
+	ipv6AddrSize = 1 + net.IPv6len + portSize
+	maxAddrSize  = 1 + 1 + 255 + portSize
 )
 
 type Addr interface {
@@ -128,7 +128,7 @@ func Handshake(rw io.ReadWriter) (Addr, error) {
 // |  1   | Variable |  2   |
 // +------+----------+------+
 func Address(r io.Reader) (Addr, error) {
-	buf := [maxAddrLen]byte{}
+	buf := [maxAddrSize]byte{}
 
 	if _, err := io.ReadFull(r, buf[:1]); err != nil {
 		return nil, err
@@ -136,16 +136,16 @@ func Address(r io.Reader) (Addr, error) {
 
 	switch buf[0] {
 	case atypIPv4:
-		if _, err := io.ReadFull(r, buf[1:ipv4AddrLen]); err != nil {
+		if _, err := io.ReadFull(r, buf[1:ipv4AddrSize]); err != nil {
 			return nil, err
 		}
 
-		return ipv4Addr(buf[:ipv4AddrLen]), nil
+		return ipv4Addr(buf[:ipv4AddrSize]), nil
 	case atypFQDN:
 		if _, err := io.ReadFull(r, buf[1:1+1]); err != nil {
 			return nil, err
 		}
-		l := 2 + int(buf[1]) + portLen
+		l := 2 + int(buf[1]) + portSize
 
 		if _, err := io.ReadFull(r, buf[2:l]); err != nil {
 			return nil, err
@@ -153,11 +153,11 @@ func Address(r io.Reader) (Addr, error) {
 
 		return fqdnAddr(buf[:l]), nil
 	case atypIPv6:
-		if _, err := io.ReadFull(r, buf[1:ipv6AddrLen]); err != nil {
+		if _, err := io.ReadFull(r, buf[1:ipv6AddrSize]); err != nil {
 			return nil, err
 		}
 
-		return ipv6Addr(buf[:ipv6AddrLen]), nil
+		return ipv6Addr(buf[:ipv6AddrSize]), nil
 	default:
 		return nil, fmt.Errorf("unsupported address type: 0x%x", buf[0])
 	}
@@ -181,7 +181,7 @@ func (a fqdnAddr) Bytes() []byte {
 }
 
 func (a fqdnAddr) String() string {
-	h := string(a[2 : len(a)-portLen])
+	h := string(a[2 : len(a)-portSize])
 	return net.JoinHostPort(h, port(a))
 }
 
@@ -197,5 +197,5 @@ func (a ipv6Addr) String() string {
 }
 
 func port(b []byte) string {
-	return strconv.Itoa(int(binary.BigEndian.Uint16(b[len(b)-portLen:])))
+	return strconv.Itoa(int(binary.BigEndian.Uint16(b[len(b)-portSize:])))
 }

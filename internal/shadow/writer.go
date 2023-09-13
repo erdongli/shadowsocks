@@ -33,10 +33,10 @@ func newWriter(w io.Writer, psk []byte, cfg AEADConfig) (io.Writer, error) {
 }
 
 func (w *writer) Write(b []byte) (int, error) {
-	n, buf := 0, make([]byte, maxPayloadLen+w.aead.Overhead())
+	n, buf := 0, make([]byte, maxPayloadSize+w.aead.Overhead())
 
 	for n < len(b) {
-		l := math.Min(maxPayloadLen, len(b)-n)
+		l := math.Min(maxPayloadSize, len(b)-n)
 		binary.BigEndian.PutUint16(buf, uint16(l))
 
 		w.aead.Seal(buf[:0], w.nonce, buf[:2], nil)

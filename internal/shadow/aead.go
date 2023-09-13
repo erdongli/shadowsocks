@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	maxPayloadLen = 0x3FFF
-	minSaltLen    = 16
+	maxPayloadSize = 0x3FFF
+	minSaltSize    = 16
 )
 
 var (
@@ -39,7 +39,7 @@ type AEADConfig struct {
 }
 
 func newAEAD(sr io.Reader, psk []byte, cfg AEADConfig) (cipher.AEAD, []byte, error) {
-	s := make([]byte, math.Max(minSaltLen, cfg.KeySize))
+	s := make([]byte, math.Max(minSaltSize, cfg.KeySize))
 
 	if _, err := io.ReadFull(sr, s); err != nil {
 		return nil, nil, err
