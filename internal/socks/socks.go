@@ -33,29 +33,44 @@ const (
 	maxAddrSize  = 1 + 1 + 255 + portSize
 )
 
+// Addr is a SOCKS address.
 type Addr interface {
+	// Bytes returns the raw SOCKS address as a byte slice.
 	Bytes() []byte
+
+	// String returns the string form <ipv4/piv6/fqdn>:<port> address.
 	String() string
 }
 
+// Handshake handles everything up to the actual payload data is sent for
+// TCP-based clients.
+//
+// Version identifier/method selection message:
+// https://datatracker.ietf.org/doc/html/rfc1928#section-3
 // +----+----------+----------+
 // |VER | NMETHODS | METHODS  |
 // +----+----------+----------+
 // | 1  |    1     | 1 to 255 |
 // +----+----------+----------+
 //
+// METHOD selection message:
+// https://datatracker.ietf.org/doc/html/rfc1928#section-3
 // +----+--------+
 // |VER | METHOD |
 // +----+--------+
 // | 1  |   1    |
 // +----+--------+
 //
+// SOCKS request:
+// https://datatracker.ietf.org/doc/html/rfc1928#section-4
 // +----+-----+-------+------+----------+----------+
 // |VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
 // +----+-----+-------+------+----------+----------+
 // | 1  |  1  | X'00' |  1   | Variable |    2     |
 // +----+-----+-------+------+----------+----------+
-
+//
+// SOCKS reply:
+// https://datatracker.ietf.org/doc/html/rfc1928#section-6
 // +----+-----+-------+------+----------+----------+
 // |VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
 // +----+-----+-------+------+----------+----------+
@@ -122,6 +137,10 @@ func Handshake(rw io.ReadWriter) (Addr, error) {
 	return addr, nil
 }
 
+// ReadSocksAddr reads the SOCKS address.
+//
+// SOCKS addressing:
+// https://datatracker.ietf.org/doc/html/rfc1928#section-5
 // +------+----------+------+
 // | ATYP |   ADDR   | PORT |
 // +------+----------+------+

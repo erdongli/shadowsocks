@@ -8,6 +8,7 @@ import (
 	"github.com/erdongli/shadowsocks/internal/socks"
 )
 
+// Local is a TCP-based ss-local.
 type Local struct {
 	ln    net.Listener
 	raddr string
@@ -15,6 +16,7 @@ type Local struct {
 	cfg   shadow.AEADConfig
 }
 
+// NewLocal creates an TCP-based ss-local.
 func NewLocal(port, raddr, key string, cfg shadow.AEADConfig) (*Local, error) {
 	ln, err := net.Listen(network, net.JoinHostPort("", port))
 	if err != nil {
@@ -29,6 +31,7 @@ func NewLocal(port, raddr, key string, cfg shadow.AEADConfig) (*Local, error) {
 	}, nil
 }
 
+// Serve blocks and starts serving incoming connections.
 func (l *Local) Serve() {
 	log.Info("accepting connection on address %s", l.ln.Addr())
 

@@ -5,6 +5,7 @@ import (
 	"net"
 )
 
+// Conn is a Shadowsocks connection.
 type Conn struct {
 	net.Conn
 
@@ -15,6 +16,8 @@ type Conn struct {
 	w io.Writer
 }
 
+// Shadow creates a Shadowsocks connection from the provided connection,
+// pre-shared key, and AEAD configuration.
 func Shadow(conn net.Conn, psk []byte, cfg AEADConfig) net.Conn {
 	return &Conn{
 		Conn: conn,
@@ -23,6 +26,9 @@ func Shadow(conn net.Conn, psk []byte, cfg AEADConfig) net.Conn {
 	}
 }
 
+// Read reads data from the connection.
+// Read can be made to time out and return an error after a fixed
+// time limit; see SetDeadline and SetReadDeadline.
 func (c *Conn) Read(b []byte) (int, error) {
 	if c.r == nil {
 		r, err := newReader(c.Conn, c.psk, c.cfg)
@@ -36,6 +42,9 @@ func (c *Conn) Read(b []byte) (int, error) {
 	return c.r.Read(b)
 }
 
+// Write writes data to the connection.
+// Write can be made to time out and return an error after a fixed
+// time limit; see SetDeadline and SetWriteDeadline.
 func (c *Conn) Write(b []byte) (int, error) {
 	if c.w == nil {
 		w, err := newWriter(c.Conn, c.psk, c.cfg)

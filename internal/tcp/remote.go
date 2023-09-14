@@ -8,12 +8,14 @@ import (
 	"github.com/erdongli/shadowsocks/internal/socks"
 )
 
+// Remote is a TCP-based ss-remote.
 type Remote struct {
 	ln  net.Listener
 	psk []byte
 	cfg shadow.AEADConfig
 }
 
+// NewRemote creates an TCP-based ss-remote.
 func NewRemote(port, key string, cfg shadow.AEADConfig) (*Remote, error) {
 	ln, err := net.Listen(network, net.JoinHostPort("", port))
 	if err != nil {
@@ -27,6 +29,7 @@ func NewRemote(port, key string, cfg shadow.AEADConfig) (*Remote, error) {
 	}, nil
 }
 
+// Serve blocks and starts serving incoming connections.
 func (r *Remote) Serve() {
 	log.Info("accepting connection on address %s", r.ln.Addr())
 
