@@ -3,31 +3,43 @@
 A Shadowsocks implementation in Go.
 
 > [!NOTE]
-> This only supports TCP CONNECT and AEAD_CHACHA20_POLY1305.
+> Only TCP CONNECT and AEAD_CHACHA20_POLY1305 are supported.
 
 ## Usage
 
 ### Docker
 
-#### Building ss-local and ss-remote
+#### Build ss-remote
 
 ```
-make docker app=local
 make docker app=remote
 ```
 
-#### Running ss-remote
+#### Build ss-local
 
 ```
-docker run shadowsocks/remote:latest -p <port> -k <access key> -l <log level>
+make docker app=local
 ```
 
-#### Running ss-local
+#### Run ss-remote
+
 ```
-docker run shadowsocks/local:latest -p <port> -r <remote host>:<remote port> -k <access key> -l <log level>
+docker run -p <port>:<port> -d shadowsocks/remote:latest \
+  -p <port> \
+  -k <access key> \
+  -l <log level>
 ```
 
-### Firefox
+#### Run ss-local
+```
+docker run -p <port>:<port> -d shadowsocks/local:latest \
+  -p <port> \
+  -r <remote host>:<remote port> \
+  -k <access key> \
+  -l <log level>
+```
+
+### Firefox Configuration
 1. Go to `about:preferences`
 2. Scroll down to `Network Settings`
 3. Select `Settings...`

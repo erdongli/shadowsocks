@@ -42,8 +42,8 @@ type Addr interface {
 	String() string
 }
 
-// Handshake handles everything up to the actual payload data is sent for
-// TCP-based clients.
+// Handshake handles everything up to when the actual payload data is sent
+// from TCP-based clients.
 //
 // Version identifier/method selection message:
 // https://datatracker.ietf.org/doc/html/rfc1928#section-3
